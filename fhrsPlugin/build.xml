@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<project name="fhrs" default="dist" basedir=".">
+<project name="fhrsPlugin" default="dist" basedir=".">
 	<property name="commit.message" value="FHRS"/>
 	<property name="plugin.main.version" value="16538"/>
 	<property name="version.entry.commit.revision" value="0.1"/>
