@@ -1,6 +1,3 @@
-# fhrsPlugin
-fhrs - A JOSM Plugin
-
 # fhrsPlugin - A JOSM Plugin
 
 This plugin for JOSM allows to use the FHRS API to merge data into OpenStreetMap.
