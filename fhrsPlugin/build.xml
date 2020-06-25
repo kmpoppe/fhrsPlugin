@@ -2,7 +2,7 @@
 <project name="fhrsPlugin" default="dist" basedir=".">
 	<property name="commit.message" value="FHRS"/>
 	<property name="plugin.main.version" value="16538"/>
-	<property name="version.entry.commit.revision" value="0.1"/>
+	<property name="version.entry.commit.revision" value="0.1.1"/>
 	<property name="plugin.author" value="Kai Michael Poppe"/>
 	<property name="plugin.class" value="org.openstreetmap.josm.plugins.fhrs.FHRSPlugin"/>   
 	<property name="plugin.description" value="Search establishments in FHRS API and merge data into OSM"/>
