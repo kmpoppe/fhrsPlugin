@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="fhrs" default="dist" basedir=".">
+	<property name="commit.message" value="FHRS"/>
+	<property name="plugin.main.version" value="16538"/>
+	<property name="version.entry.commit.revision" value="0.1"/>
+	<property name="plugin.author" value="Kai Michael Poppe"/>
+	<property name="plugin.class" value="org.openstreetmap.josm.plugins.fhrs.FHRSPlugin"/>   
+	<property name="plugin.description" value="Getting information from the FHRS Api"/>
+	<property name="plugin.icon" value=""/>
+	<property name="plugin.link" value="https://wiki.openstreetmap.org/wiki/User:Kmpoppe/Plugins#fhrs"/>
+	<property name="plugin.canloadatruntime" value="true"/>
+	<import file="../build-common.xml"/>
+    <fileset id="plugin.requires.jars" dir="${plugin.lib.dir}">
+        <include name="gson-2.8.6.jar"/>
+    </fileset>
+</project>
