@@ -40,14 +40,15 @@ public class mergeTagsDialog {
 		final int result = JOptionPane.showOptionDialog(null, panel, "Select which values to merge from FHRS to OSM",
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
 				null, null, null);
-		if (result == JOptionPane.OK_OPTION){
-			for(int row = 0; row < osmTagsTable.getRowCount(); row++) {
-				if ((Boolean)osmTagsTable.getValueAt(row, 0)) {
-					returnValues.put(osmTagsTable.getValueAt(row, 1).toString(), osmTagsTable.getValueAt(row, 2).toString());
-				}
+		for(int row = 0; row < osmTagsTable.getRowCount(); row++) {
+			if ((Boolean)osmTagsTable.getValueAt(row, 0)) {
+				returnValues.put(osmTagsTable.getValueAt(row, 1).toString(), osmTagsTable.getValueAt(row, 2).toString());
 			}
-			return returnValues;
+		}
+		if (result == JOptionPane.OK_OPTION){
+			if (returnValues.size() == 0) return null; else return returnValues;
 		} else {
+			if (returnValues.size() > 0 ) FHRSPlugin.msgBox("Setting values was cancelled!", JOptionPane.INFORMATION_MESSAGE);
 			return null;
 		}
 	}

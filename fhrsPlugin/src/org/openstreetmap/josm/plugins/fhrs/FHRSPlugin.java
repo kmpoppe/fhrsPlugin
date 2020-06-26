@@ -157,10 +157,9 @@ public class FHRSPlugin extends Plugin {
 								searchResults.add(tableEntry);
 							}
 							String selectedFhrsId = searchResultsDialog.showSearchDialog(searchResults);
-							if (selectedFhrsId != null)
+							if (selectedFhrsId != null) {
 								updateObjectData(selectedFhrsId);
-							else
-								msgBox("Setting values was cancelled.", JOptionPane.INFORMATION_MESSAGE);
+							}
 						} catch (FileNotFoundException e) {
 							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
 						} catch (Exception e) {
@@ -222,7 +221,7 @@ public class FHRSPlugin extends Plugin {
 							}
 						}
 						Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags);
-						if (osmTagsToSet != null) {
+						if (osmTagsToSet != null && osmTagsToSet.size() > 0) {
 							ChangePropertyCommand changePropertyCommand = 
 								new ChangePropertyCommand(
 									currentDataSet, 
@@ -230,8 +229,6 @@ public class FHRSPlugin extends Plugin {
 									osmTagsToSet
 								);
 							UndoRedoHandler.getInstance().add(changePropertyCommand);
-						} else {
-							msgBox("Setting values was cancelled.", JOptionPane.INFORMATION_MESSAGE);
 						}
 					} catch (Exception e) {
 						String cStackTrace = "";
