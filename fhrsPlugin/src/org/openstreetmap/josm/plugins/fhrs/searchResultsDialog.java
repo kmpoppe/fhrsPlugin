@@ -40,8 +40,13 @@ public class searchResultsDialog {
 				null, null, null);
 		if (result == JOptionPane.OK_OPTION){
 			int iRow = searchResultsTable.getSelectedRow();
-			returnValue = searchResultsTable.getValueAt(iRow, 0).toString();
-			return returnValue;
+			if (iRow == -1 && searchResults.size() == 1) iRow = 0;
+			if (iRow > -1) {
+				returnValue = searchResultsTable.getValueAt(iRow, 0).toString();
+				return returnValue;
+			} else {
+				return null;
+			}
 		} else {
 			return null;
 		}
