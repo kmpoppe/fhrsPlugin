@@ -36,6 +36,7 @@ public class mergeTagsDialog {
 		panel.setLayout(new BorderLayout());
 		panel.add(osmTagsTable.getTableHeader(), BorderLayout.PAGE_START);
 		panel.add(osmTagsTable, BorderLayout.CENTER);
+		panel.add(new JLabel("Select which values to merge from FHRS to OSM. You can also change the \"New value\" if you need to before merging."), BorderLayout.PAGE_END);
 		final int result = JOptionPane.showOptionDialog(null, panel, "Select which values to merge from FHRS to OSM",
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
 				null, null, null);

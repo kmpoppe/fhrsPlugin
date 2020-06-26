@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.openstreetmap.josm.actions.*;
-
+import org.openstreetmap.josm.command.ChangePropertyCommand;
+import org.openstreetmap.josm.data.UndoRedoHandler;
 import org.openstreetmap.josm.data.osm.*;
 
 import org.openstreetmap.josm.gui.*;
@@ -99,71 +100,77 @@ public class FHRSPlugin extends Plugin {
 						thisName = selectedObject.get("name");
 					}
 					String[] addrTags = new String[] { "housenumber", "street", "city", "postcode"};
+					boolean moreThanHousenumber = false;
 					for(String addrTag : addrTags) {
 						if (selectedObject.getKeys().containsKey("addr:" + addrTag)) {
 							thisAddress += (thisAddress != "" ? " " : "") + selectedObject.get("addr:" + addrTag);
+							if (addrTag != "housenumber") moreThanHousenumber = true;
 						}	
 					}					
-					String returnedJson = "{}";
-					String cEncodedName = "";
-					String cEncodedAddress = "";
-					try {
-						cEncodedName = URLEncoder.encode(thisName, StandardCharsets.UTF_8.toString());
-						cEncodedAddress = URLEncoder.encode(thisAddress, StandardCharsets.UTF_8.toString());
-					} catch (Exception e) {
-						// This shouldn't fail
-					}
-					try {
-						Gson gson = new Gson();
-						String cUrl = "";
-						JsonArray jEstablishmentsArray;
-						for (String[] pars: new String[][] { 
-							{ "&name=" + cEncodedName, "&address=" + cEncodedAddress },
-							{ "&address=" + cEncodedAddress },
-							{ "&name=" + cEncodedName }
-						} )
-						{
-							cUrl = cApiEst + "?pagesize=10";
-							for(String par: pars) cUrl = cUrl + par;
-							returnedJson = fhrsApiCall(cUrl);
-							if (gson.fromJson(returnedJson, JsonObject.class).getAsJsonArray("establishments").size() > 0) break;
+					if (moreThanHousenumber) {
+						String returnedJson = "{}";
+						String cEncodedName = "";
+						String cEncodedAddress = "";
+						try {
+							cEncodedName = URLEncoder.encode(thisName, StandardCharsets.UTF_8.toString());
+							cEncodedAddress = URLEncoder.encode(thisAddress, StandardCharsets.UTF_8.toString());
+						} catch (Exception e) {
+							// This shouldn't fail
 						}
-						jEstablishmentsArray = 
-							gson
-							.fromJson(returnedJson, JsonObject.class)
-							.getAsJsonArray("establishments");
-						List<List<String>> searchResults = new ArrayList<List<String>>();
-						for(JsonElement jEstablishmentElement: jEstablishmentsArray) {
-							JsonObject jEstablishmentObject = jEstablishmentElement.getAsJsonObject();
-							List<String> tableEntry = new ArrayList<String>();
-							String ApiFHRSID = jEstablishmentObject.get("FHRSID").toString();
-							String ApiBusinessName = jEstablishmentObject.get("BusinessName").toString().replaceAll("\"([^\"]*)\"", "$1");
-							tableEntry.add(ApiFHRSID);
-							tableEntry.add(ApiBusinessName);
-							String ApiFullAddress = "";
-							for (int iAddrLine = 1; iAddrLine < 5; iAddrLine++) {
-								String ApiAddressEntry = jEstablishmentObject
-									.get("AddressLine" + Integer.toString(iAddrLine))
-									.toString()
-									.replaceAll("\"([^\"]*)\"", "$1");
-								ApiFullAddress += " " + ApiAddressEntry.trim();
-								ApiFullAddress = ApiFullAddress.trim();
+						try {
+							Gson gson = new Gson();
+							String cUrl = "";
+							JsonArray jEstablishmentsArray;
+							for (String[] pars: new String[][] { 
+								{ "&name=" + cEncodedName, "&address=" + cEncodedAddress },
+								{ "&address=" + cEncodedAddress },
+								{ "&name=" + cEncodedName }
+							} )
+							{
+								cUrl = cApiEst + "?pagesize=10";
+								for(String par: pars) cUrl = cUrl + par;
+								returnedJson = fhrsApiCall(cUrl);
+								if (gson.fromJson(returnedJson, JsonObject.class).getAsJsonArray("establishments").size() > 0) break;
 							}
-							tableEntry.add(ApiFullAddress);
-							searchResults.add(tableEntry);
+							jEstablishmentsArray = 
+								gson
+								.fromJson(returnedJson, JsonObject.class)
+								.getAsJsonArray("establishments");
+							List<List<String>> searchResults = new ArrayList<List<String>>();
+							for(JsonElement jEstablishmentElement: jEstablishmentsArray) {
+								JsonObject jEstablishmentObject = jEstablishmentElement.getAsJsonObject();
+								List<String> tableEntry = new ArrayList<String>();
+								String ApiFHRSID = jEstablishmentObject.get("FHRSID").toString();
+								String ApiBusinessName = jEstablishmentObject.get("BusinessName").toString().replaceAll("\"([^\"]*)\"", "$1");
+								tableEntry.add(ApiFHRSID);
+								tableEntry.add(ApiBusinessName);
+								String ApiFullAddress = "";
+								for (int iAddrLine = 1; iAddrLine < 5; iAddrLine++) {
+									String ApiAddressEntry = jEstablishmentObject
+										.get("AddressLine" + Integer.toString(iAddrLine))
+										.toString()
+										.replaceAll("\"([^\"]*)\"", "$1");
+									ApiFullAddress += " " + ApiAddressEntry.trim();
+									ApiFullAddress = ApiFullAddress.trim();
+								}
+								tableEntry.add(ApiFullAddress);
+								searchResults.add(tableEntry);
+							}
+							String selectedFhrsId = searchResultsDialog.showSearchDialog(searchResults);
+							if (selectedFhrsId != null)
+								updateObjectData(selectedFhrsId);
+							else
+								msgBox("Setting values was cancelled.", JOptionPane.INFORMATION_MESSAGE);
+						} catch (FileNotFoundException e) {
+							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
+						} catch (Exception e) {
+							String cStackTrace = "";
+							for(StackTraceElement s: e.getStackTrace())
+								cStackTrace += s.toString() + crLf;
+							msgBox(e.toString() + cStackTrace, JOptionPane.ERROR_MESSAGE);
 						}
-						String selectedFhrsId = searchResultsDialog.showSearchDialog(searchResults);
-						if (selectedFhrsId != null)
-							updateObjectData(selectedFhrsId);
-						else
-							msgBox("Setting values was cancelled.", JOptionPane.INFORMATION_MESSAGE);
-					} catch (FileNotFoundException e) {
-						msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
-					} catch (Exception e) {
-						String cStackTrace = "";
-						for(StackTraceElement s: e.getStackTrace())
-							cStackTrace += s.toString() + crLf;
-						msgBox(e.toString() + cStackTrace, JOptionPane.ERROR_MESSAGE);
+					} else {
+						msgBox("This object doesn't have an address. The FHRS API will not return data.", JOptionPane.ERROR_MESSAGE);	
 					}
 				}
 			} else {
@@ -214,11 +221,15 @@ public class FHRSPlugin extends Plugin {
 								);
 							}
 						}
-						TagMap existingTags = selectedObject.getKeys();
 						Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags);
 						if (osmTagsToSet != null) {
-							existingTags.putAll(osmTagsToSet);
-							selectedObject.setKeys(existingTags);
+							ChangePropertyCommand changePropertyCommand = 
+								new ChangePropertyCommand(
+									currentDataSet, 
+									java.util.Collections.singleton(selectedObject), 
+									osmTagsToSet
+								);
+							UndoRedoHandler.getInstance().add(changePropertyCommand);
 						} else {
 							msgBox("Setting values was cancelled.", JOptionPane.INFORMATION_MESSAGE);
 						}
