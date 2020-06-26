@@ -203,38 +203,49 @@ public class FHRSPlugin extends Plugin {
 							gson
 							.fromJson(returnedJson, JsonObject.class)
 							.getAsJsonObject();
-						Map<String, oldAndNewValues> osmTags = new HashMap<String, oldAndNewValues>();
-						
-						for(Map.Entry<String, String> entry : JsonToOSM.entrySet()) {
-							String thisNewValue = jEstablishmentProperties
-								.get(entry.getKey())
-								.toString()
-								.replaceAll("\"([^\"]*)\"", "$1");
-							if (thisNewValue != "") {
-								osmTags.put(
-									entry.getValue(), 
-									new oldAndNewValues(
-										thisNewValue, 
-										(selectedObject.get(entry.getValue()) != null ? selectedObject.get(entry.getValue()) : "")
-									)
-								);
+						if (!(jEstablishmentProperties == null)) {
+							Map<String, oldAndNewValues> osmTags = new HashMap<String, oldAndNewValues>();
+							
+							for(Map.Entry<String, String> entry : JsonToOSM.entrySet()) {
+								JsonElement thisNewElement = jEstablishmentProperties
+									.get(entry.getKey());
+								if (thisNewElement != null) {
+									String thisNewValue = thisNewElement
+										.toString()
+										.replaceAll("\"([^\"]*)\"", "$1");
+									if (thisNewValue != "") {
+										osmTags.put(
+											entry.getValue(), 
+											new oldAndNewValues(
+												thisNewValue, 
+												(selectedObject.get(entry.getValue()) != null ? selectedObject.get(entry.getValue()) : "")
+											)
+										);
+									}
+								}
 							}
-						}
-						Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags);
-						if (osmTagsToSet != null && osmTagsToSet.size() > 0) {
-							ChangePropertyCommand changePropertyCommand = 
-								new ChangePropertyCommand(
-									currentDataSet, 
-									java.util.Collections.singleton(selectedObject), 
-									osmTagsToSet
-								);
-							UndoRedoHandler.getInstance().add(changePropertyCommand);
+							if (osmTags.size() > 0) {
+								Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags);
+								if (osmTagsToSet != null && osmTagsToSet.size() > 0) {
+									ChangePropertyCommand changePropertyCommand = 
+										new ChangePropertyCommand(
+											currentDataSet, 
+											java.util.Collections.singleton(selectedObject), 
+											osmTagsToSet
+										);
+									UndoRedoHandler.getInstance().add(changePropertyCommand);
+								}
+							} else {
+								msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
+							}
+						} else {
+							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
 						}
 					} catch (Exception e) {
 						String cStackTrace = "";
 						for(StackTraceElement s: e.getStackTrace())
 							cStackTrace += s.toString() + crLf;
-						msgBox(e.toString() + cStackTrace, JOptionPane.ERROR_MESSAGE);
+						msgBox(e.toString() + crLf + cStackTrace, JOptionPane.ERROR_MESSAGE);
 					}
 				} else {
 					msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
