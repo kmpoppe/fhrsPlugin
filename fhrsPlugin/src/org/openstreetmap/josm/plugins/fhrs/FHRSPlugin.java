@@ -145,7 +145,14 @@ public class FHRSPlugin extends Plugin {
 							thisAddress += (thisAddress != "" ? " " : "") + selectedObject.get("addr:" + addrTag);
 							if (addrTag != "housenumber") moreThanHousenumber = true;
 						}	
-					}					
+					}
+					if (!moreThanHousenumber) {
+						String input = JOptionPane.showInputDialog("The object doesn't have any address information. Please enter at least a city and/or a full address.");
+						if (input.trim() != "") {
+							thisAddress = input.trim();
+							moreThanHousenumber = true;
+						}
+					}
 					if (moreThanHousenumber) {
 						String returnedJson = "{}";
 						String cEncodedName = "";
@@ -162,11 +169,10 @@ public class FHRSPlugin extends Plugin {
 							JsonArray jEstablishmentsArray;
 							for (String[] pars: new String[][] { 
 								{ "&name=" + cEncodedName, "&address=" + cEncodedAddress },
-								{ "&address=" + cEncodedAddress },
-								{ "&name=" + cEncodedName }
+								{ "&address=" + cEncodedAddress }
 							} )
 							{
-								cUrl = cApiEst + "?pagesize=10";
+								cUrl = cApiEst + "?pagesize=30";
 								for(String par: pars) cUrl = cUrl + par;
 								returnedJson = fhrsApiCall(cUrl);
 								if (gson.fromJson(returnedJson, JsonObject.class).getAsJsonArray("establishments").size() > 0) break;
