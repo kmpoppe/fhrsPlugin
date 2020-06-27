@@ -10,6 +10,7 @@ import java.awt.*;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellEditor;
 
 public class mergeTagsDialog {
 
@@ -22,7 +23,14 @@ public class mergeTagsDialog {
 		Collections.sort(tagList);
 		for(final String osmTag : tagList) {
 			final FHRSPlugin.oldAndNewValues oanv = osmTags.get(osmTag);
-			if (oanv.newValue != "") columnValuesList.add(new Object[] { false, osmTag, oanv.newValue, oanv.oldValue } );
+			if (oanv.newValue != "") {
+				columnValuesList.add(new Object[] { 
+					false, 
+					osmTag, 
+					oanv.newValue, 
+					oanv.oldValue 
+				} );
+			}
 		}
 		columnValues = columnValuesList.toArray(columnValues);
 		final osmTagsTableModel thisTableModel = new osmTagsTableModel();
@@ -30,6 +38,7 @@ public class mergeTagsDialog {
 		final JTable osmTagsTable = new JTable(thisTableModel);
 		osmTagsTable.setRowHeight(20);
 		osmTagsTable.getColumnModel().getColumn(0).setCellEditor(new DefaultCellEditor(new JCheckBox()));
+		osmTagsTable.getColumnModel().getColumn(2).setCellEditor(new CustomTableCellEditor());
 		osmTagsTable.getColumnModel().getColumn(1).setPreferredWidth(200);
 		osmTagsTable.getColumnModel().getColumn(2).setPreferredWidth(200);
 		osmTagsTable.getColumnModel().getColumn(3).setPreferredWidth(200);
@@ -52,7 +61,37 @@ public class mergeTagsDialog {
 			return null;
 		}
 	}
+	public static class CustomTableCellEditor extends AbstractCellEditor implements TableCellEditor {
+		private static final long serialVersionUID = 1L;
+		private TableCellEditor editor;
 
+        @Override
+        public Object getCellEditorValue() {
+            if (editor != null) {
+                return editor.getCellEditorValue();
+            }
+            return null;
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+			if (value instanceof String && table.getValueAt(row, 1) == "fhrs:authority") {
+				JComboBox<String> oComboBox = new JComboBox<String>();
+				for (String auth: FHRSPlugin.fhrsAuthorities) {
+					oComboBox.addItem(auth);
+				}
+				oComboBox.setSelectedItem(value.toString());
+				editor = new DefaultCellEditor(oComboBox);
+			} else if (value instanceof String && table.getValueAt(row, 1) != "fhrs:authority") {
+				editor = new DefaultCellEditor(new JTextField());
+			//} else if (value instanceof Boolean) {
+			//	editor = new DefaultCellEditor(new JCheckBox());
+			}
+
+			return editor.getTableCellEditorComponent(table, value, isSelected, row, column);
+        }
+	}
+	
 	static class osmTagsTableModel extends AbstractTableModel {
 		private static final long serialVersionUID = 1L;
 		String[] columnNames = { "Merge", "Tag", "New value", "Old Value" };

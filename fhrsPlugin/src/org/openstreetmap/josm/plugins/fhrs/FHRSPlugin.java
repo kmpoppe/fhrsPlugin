@@ -17,11 +17,17 @@ import org.openstreetmap.josm.plugins.*;
 import java.awt.event.*;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+/* not in use yet
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+*/
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -36,14 +42,47 @@ public class FHRSPlugin extends Plugin {
 	static JMenuItem FHRSSearch;
 	private OsmPrimitive selectedObject;
 
+	public static List<String> fhrsAuthorities = new ArrayList<String>();
+
 	FHRSPlugin me = this;
 	int maxMenuItemLen = 50;
 	public static String crLf = "" + (char) 13 + (char) 10;
 	public static String cApiEst = "https://api.ratings.food.gov.uk/Establishments";
+	public static String cApiAuth = "https://api.ratings.food.gov.uk/Authorities";
 	
 	public FHRSPlugin(final PluginInformation info) {
 		super(info);
 		createMenu();
+
+		String fhrsAuthoritiesJson = "";
+		try {
+			InputStream oIP = getClass().getResourceAsStream("/resources/fhrs-authorities.json");
+			BufferedReader oReader = new BufferedReader(new InputStreamReader(oIP, StandardCharsets.UTF_8));
+			StringBuilder oBuilder = new StringBuilder();
+			String strLine;
+			while ((strLine = oReader.readLine()) != null) {
+				oBuilder.append(strLine).append('\n');
+			}
+			fhrsAuthoritiesJson = oBuilder.toString();
+			oIP.close();
+
+			JsonObject thisJson = new Gson().fromJson(fhrsAuthoritiesJson, JsonObject.class);
+
+			/* not in use yet
+			ZonedDateTime extractDate = ZonedDateTime.parse(thisJson.getAsJsonObject("meta").get("extractDate").toString().replaceAll("\"([^\"]*)\"", "$1"));
+			Long extractAge = Duration.between(extractDate.toInstant(), ZonedDateTime.now(ZoneId.of("Europe/London")).toInstant()).toMinutes();
+			*/
+
+			JsonArray jAuthoritiesArray = thisJson
+				.getAsJsonArray("authorities");
+			for(JsonElement jAuthorityElement: jAuthoritiesArray) {
+				JsonObject jAuthorityObject = jAuthorityElement.getAsJsonObject();
+				fhrsAuthorities.add(jAuthorityObject.get("Name").toString().replaceAll("\"([^\"]*)\"", "$1"));
+			}
+		} catch (Exception e) {
+			displayStackTrace(e);
+		}
+
 	}
 
 	private void createMenu() {
@@ -115,7 +154,7 @@ public class FHRSPlugin extends Plugin {
 							cEncodedName = URLEncoder.encode(thisName, StandardCharsets.UTF_8.toString());
 							cEncodedAddress = URLEncoder.encode(thisAddress, StandardCharsets.UTF_8.toString());
 						} catch (Exception e) {
-							// This shouldn't fail
+							displayStackTrace(e);
 						}
 						try {
 							Gson gson = new Gson();
@@ -163,10 +202,7 @@ public class FHRSPlugin extends Plugin {
 						} catch (FileNotFoundException e) {
 							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
 						} catch (Exception e) {
-							String cStackTrace = "";
-							for(StackTraceElement s: e.getStackTrace())
-								cStackTrace += s.toString() + crLf;
-							msgBox(e.toString() + cStackTrace, JOptionPane.ERROR_MESSAGE);
+							displayStackTrace(e);
 						}
 					} else {
 						msgBox("This object doesn't have an address. The FHRS API will not return data.", JOptionPane.ERROR_MESSAGE);	
@@ -242,10 +278,7 @@ public class FHRSPlugin extends Plugin {
 							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
 						}
 					} catch (Exception e) {
-						String cStackTrace = "";
-						for(StackTraceElement s: e.getStackTrace())
-							cStackTrace += s.toString() + crLf;
-						msgBox(e.toString() + crLf + cStackTrace, JOptionPane.ERROR_MESSAGE);
+						displayStackTrace(e);
 					}
 				} else {
 					msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
@@ -308,6 +341,13 @@ public class FHRSPlugin extends Plugin {
 
 	public static void msgBox(String message, int messageType) {
 		JOptionPane.showMessageDialog(null, message, "FHRS Plugin", messageType);
+	}
+
+	public static void displayStackTrace(Exception e) {
+		String cStackTrace = "";
+		for(StackTraceElement s: e.getStackTrace())
+			cStackTrace += s.toString() + crLf;
+		msgBox(e.toString() + crLf + cStackTrace, JOptionPane.ERROR_MESSAGE);
 	}
 
 	public static class oldAndNewValues {
