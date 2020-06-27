@@ -1,6 +1,13 @@
 # fhrsPlugin - A JOSM Plugin
+[![Twitter](https://img.shields.io/badge/Twitter-@kmpoppe-1DA1F2.svg?style=for-the-badge&logo=twitter)](https://twitter.com/kmpoppe)
+[![Custom badge](https://img.shields.io/static/v1?label=TELEGRAM&message=%40kmpoppe&color=0088ff&logo=telegram&style=for-the-badge)](https://t.me/kmpoppe)
+![GitHub All Releases](https://img.shields.io/github/downloads/kmpoppe/fhrsPlugin/total?style=for-the-badge)
 
 This plugin for JOSM allows to use the FHRS API to merge data into OpenStreetMap.
+
+## Contributing
+
+If you want to contribute to this plugin, please read [CONTRIBUTING.md](/CONTRIBUTING.md).
 
 ## How to install this plugin manually
 
