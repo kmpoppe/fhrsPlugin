@@ -23,10 +23,9 @@ The plugin adds a main menu entry called "FHRS".
 
 The menu "Get information" will get the data from FHRS that belongs to the fhrs:id, that's already set in the object. If there is none, the action is cancelled.
 
-The menu "Search entry" looks up establishments in FHRS using this three options in order:
+The menu "Search entry" looks up establishments in FHRS using this two options in order:
 
 1. name and address
 2. address only
-3. name only
 
 The search result is displayed in a list for you to pick the right establishment. After choosing one the merge dialog will show.
