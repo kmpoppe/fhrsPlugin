@@ -14,7 +14,7 @@ import javax.swing.table.TableCellEditor;
 
 public class mergeTagsDialog {
 
-	public static Map<String, String> showTagsDialog (final Map<String, FHRSPlugin.oldAndNewValues> osmTags) {
+	public static Map<String, String> showTagsDialog (final Map<String, FHRSPlugin.oldAndNewValues> osmTags, boolean warnCapitalization) {
 		final JPanel panel = new JPanel();
 		Object[][] columnValues = {};
 		final List<Object[]> columnValuesList = new ArrayList<Object[]>();
@@ -45,7 +45,12 @@ public class mergeTagsDialog {
 		panel.setLayout(new BorderLayout());
 		panel.add(osmTagsTable.getTableHeader(), BorderLayout.PAGE_START);
 		panel.add(osmTagsTable, BorderLayout.CENTER);
-		panel.add(new JLabel("Select which values to merge from FHRS to OSM. You can also change the \"New value\" if you need to before merging."), BorderLayout.PAGE_END);
+		JPanel bottomMessages = new JPanel(new BorderLayout());
+		bottomMessages.add(new JLabel("Select which values to merge from FHRS to OSM. You can also change the \"New value\" if you need to before merging."), "First");
+		if (warnCapitalization) {
+			bottomMessages.add(new JLabel("Warning! Some entries had wrong casing. I tried to figure out the correct casing, but the result might be wrong. Please check before merging!"), "Last");
+		}
+		panel.add(bottomMessages, BorderLayout.PAGE_END);
 		final int result = JOptionPane.showOptionDialog(null, panel, "Select which values to merge from FHRS to OSM",
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
 				null, null, null);

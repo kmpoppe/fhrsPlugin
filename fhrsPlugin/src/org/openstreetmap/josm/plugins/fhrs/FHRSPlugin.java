@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openstreetmap.josm.actions.*;
 import org.openstreetmap.josm.command.ChangePropertyCommand;
@@ -241,6 +243,7 @@ public class FHRSPlugin extends Plugin {
 					}
 					Gson gson = new Gson();
 					try {
+						boolean warnCapitalization = false;
 						JsonObject jEstablishmentProperties = 
 							gson
 							.fromJson(returnedJson, JsonObject.class)
@@ -256,6 +259,12 @@ public class FHRSPlugin extends Plugin {
 										.toString()
 										.replaceAll("\"([^\"]*)\"", "$1");
 									if (thisNewValue != "") {
+										if (deCapitalize(thisNewValue).trim().compareTo(thisNewValue.trim()) != 0) {
+											if (entry.getValue() != "addr:postcode" && !entry.getValue().startsWith("fhrs:")) {
+												warnCapitalization = true;
+												thisNewValue = deCapitalize(thisNewValue);
+											}
+										}
 										osmTags.put(
 											entry.getValue(), 
 											new oldAndNewValues(
@@ -267,7 +276,7 @@ public class FHRSPlugin extends Plugin {
 								}
 							}
 							if (osmTags.size() > 0) {
-								Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags);
+								Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags, warnCapitalization);
 								if (osmTagsToSet != null && osmTagsToSet.size() > 0) {
 									ChangePropertyCommand changePropertyCommand = 
 										new ChangePropertyCommand(
@@ -328,6 +337,58 @@ public class FHRSPlugin extends Plugin {
 			throw new Exception(e.getMessage());
 		}
 		return returnValue;
+	}
+
+	private String deCapitalize (String inp) {
+		String text = inp;
+		StringBuilder sb = new StringBuilder();
+		Matcher m;
+
+		// Make only the first character a capital
+		m = Pattern.compile("\\b\\w{1,}\\b").matcher(text);
+	
+		int last = 0;
+		while (m.find()) {
+			sb.append(text.substring(last, m.start()));
+			sb.append(m.group(0).substring(0, 1).toUpperCase());
+			sb.append(m.group(0).substring(1).toLowerCase());
+			last = m.end();
+		}
+		sb.append(text.substring(last));
+
+		// Get result of first run ready for the second run
+		text = sb.toString();
+		sb = new StringBuilder();
+		
+		// For city names, make hyphen-enclosed words all lowercase
+		// e.g. Stow-on-the-Wold
+		m = Pattern.compile("\\-([\\S]*)\\-").matcher(text);
+	
+		last = 0;
+		while (m.find()) {
+			sb.append(text.substring(last, m.start()));
+			sb.append(m.group(0).toLowerCase());
+			last = m.end();
+		}
+		sb.append(text.substring(last));
+	
+		// Get result of second run ready for the third run
+		text = sb.toString();
+		sb = new StringBuilder();
+		
+		// For city names, make "and" and "with" all lowercase when they are single words
+		// e.g. Bletchley and Fenny Stratford
+		m = Pattern.compile("\\b(And|With)\\b").matcher(text);
+	
+		last = 0;
+		while (m.find()) {
+			sb.append(text.substring(last, m.start()));
+			sb.append(m.group(0).toLowerCase());
+			last = m.end();
+		}
+		sb.append(text.substring(last));
+
+		return sb.toString();
 	}
 
 	static final Map<String, String> JsonToOSM = new HashMap<String, String>() {
