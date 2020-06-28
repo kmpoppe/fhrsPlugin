@@ -36,6 +36,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.awt.*;
 import javax.swing.*;
 
 public class FHRSPlugin extends Plugin {
@@ -48,6 +49,7 @@ public class FHRSPlugin extends Plugin {
 
 	FHRSPlugin me = this;
 	int maxMenuItemLen = 50;
+	String addressInput = "";
 	public static String crLf = "" + (char) 13 + (char) 10;
 	public static String cApiEst = "https://api.ratings.food.gov.uk/Establishments";
 	public static String cApiAuth = "https://api.ratings.food.gov.uk/Authorities";
@@ -149,9 +151,16 @@ public class FHRSPlugin extends Plugin {
 						}	
 					}
 					if (!moreThanHousenumber) {
-						String input = JOptionPane.showInputDialog("The object doesn't have any address information. Please enter at least a city and/or a full address.");
-						if (input != null && input.trim() != "") {
-							thisAddress = input.trim();
+						JPanel inputPanel = new JPanel(new BorderLayout());
+						JTextField textField = new JTextField(addressInput);
+						JCheckBox remember = new JCheckBox("Remember value", true);
+						inputPanel.add(new JLabel("The object doesn't have any address information. Please enter at least a city and/or a full address."), "First");
+						inputPanel.add(textField, "Center");
+						inputPanel.add(remember, "Last");
+						JOptionPane.showOptionDialog(null, inputPanel, "FHRS Plugin", JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, null);
+						if (textField.getText() != null && textField.getText().trim() != "") {
+							if (remember.isSelected()) addressInput = textField.getText().trim();
+							thisAddress = textField.getText().trim();
 							moreThanHousenumber = true;
 						}
 					}
