@@ -148,7 +148,7 @@ public class FHRSPlugin extends Plugin {
 					}
 					if (!moreThanHousenumber) {
 						String input = JOptionPane.showInputDialog("The object doesn't have any address information. Please enter at least a city and/or a full address.");
-						if (input.trim() != "") {
+						if (input != null && input.trim() != "") {
 							thisAddress = input.trim();
 							moreThanHousenumber = true;
 						}
