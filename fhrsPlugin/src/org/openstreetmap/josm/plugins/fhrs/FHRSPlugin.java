@@ -106,7 +106,7 @@ public class FHRSPlugin extends Plugin {
 		@Override
 		public void actionPerformed(ActionEvent event) {
 			DataSet currentDataSet = MainApplication.getLayerManager().getActiveDataSet();
-			if (currentDataSet.getAllSelected().size() > 0) {
+			if (currentDataSet != null && currentDataSet.getAllSelected().size() > 0) {
 				if (currentDataSet.getAllSelected().size() > 1) {
 					msgBox("More than one object selected", JOptionPane.WARNING_MESSAGE);
 				} else {
@@ -129,7 +129,7 @@ public class FHRSPlugin extends Plugin {
 		@Override
 		public void actionPerformed(ActionEvent event) {
 			DataSet currentDataSet = MainApplication.getLayerManager().getActiveDataSet();
-			if (currentDataSet.getAllSelected().size() > 0) {
+			if (currentDataSet != null && currentDataSet.getAllSelected().size() > 0) {
 				if (currentDataSet.getAllSelected().size() > 1) {
 					msgBox("More than one object selected", JOptionPane.WARNING_MESSAGE);
 				} else {
@@ -222,7 +222,7 @@ public class FHRSPlugin extends Plugin {
 
 	public void updateObjectData(String fhrsId) {
 		DataSet currentDataSet = MainApplication.getLayerManager().getActiveDataSet();
-		if (currentDataSet.getAllSelected().size() > 0) {
+		if (currentDataSet != null && currentDataSet.getAllSelected().size() > 0) {
 			if (currentDataSet.getAllSelected().size() > 1) {
 				msgBox("More than one object selected", JOptionPane.WARNING_MESSAGE);
 			} else {

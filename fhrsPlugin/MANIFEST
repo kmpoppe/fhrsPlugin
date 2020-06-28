@@ -6,7 +6,7 @@ Plugin-Version: 0.1.5
 Plugin-Class: org.openstreetmap.josm.plugins.fhrs.FHRSPlugin
 Plugin-Description: Search establishments in FHRS API and merge data i
  nto OSM
-Plugin-Date: 2020-06-28T07:56:33.167
+Plugin-Date: 2020-06-28T08:01:59.691
 Author: Kai Michael Poppe
 Plugin-Link: https://wiki.openstreetmap.org/wiki/User:Kmpoppe/Plugins#
  fhrsPlugin
