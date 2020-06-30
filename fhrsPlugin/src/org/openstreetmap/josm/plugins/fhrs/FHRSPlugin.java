@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
 import java.awt.*;
 import javax.swing.*;
@@ -138,6 +144,10 @@ public class FHRSPlugin extends Plugin {
 					msgBox("More than one object selected", JOptionPane.WARNING_MESSAGE);
 				} else {
 					selectedObject = currentDataSet.getAllSelected().iterator().next();
+					List<String> fhrsAuthorities = getSurroundingAuthorities(selectedObject);
+					msgBox(fhrsAuthorities.get(0).toString(), 1);
+					msgBox(fhrsAuthorities.get(1).toString(), 1);
+					msgBox(fhrsAuthorities.get(2).toString(), 1);
 					String thisName = "", thisAddress = "";
 					if (selectedObject.getKeys().containsKey("name")) {
 						thisName = selectedObject.get("name");
@@ -433,5 +443,91 @@ public class FHRSPlugin extends Plugin {
 			this.newValue = newV;
 			this.oldValue = oldV;
 		}
+	}
+
+	private List<String> getSurroundingAuthorities (OsmPrimitive osm) {
+		List<String> returnValue = new ArrayList<String>();
+		try {
+			String centerSelector = "osm" + (
+				osm.getType() == OsmPrimitiveType.NODE ? "node" : (
+				osm.getType() == OsmPrimitiveType.WAY ? "way" : (
+				osm.getType() == OsmPrimitiveType.RELATION ? "rel" : "")))
+				+ ":" + Long.toString(osm.getId());
+			String querySelect = "select ?fhrsAuth (min(?distance) as ?md) with {\n" +
+				"  select ?center where {\n" +
+				"    " + centerSelector + " osmm:loc ?center.\n" +
+				"  }\n" +
+				"} as %center where {  \n" +
+				"  ?element osmt:fhrs:authority ?fhrsAuth;\n" +
+				"           osmm:loc ?coords.\n" +
+				"\n" +
+				"  include %center.\n" +
+				"  service wikibase:around {\n" +
+				"    ?element osmm:loc ?location.\n" +
+				"    bd:serviceParam wikibase:center ?center;\n" +
+				"                    wikibase:radius \"10\"; # in km\n" +
+				"                    wikibase:distance ?distance.\n" +
+				"  }\n" +
+				"}\n" +
+				"group by ?fhrsAuth\n" +
+				"order by asc(?md)\n" +
+				"limit 3";
+
+				URL url = new URL("https://sophox.org/sparql?query=" + URLEncoder.encode(querySelect, StandardCharsets.UTF_8.toString()));
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");
+			con.setRequestProperty("content-type", "application/json");
+			int status = con.getResponseCode();
+ 
+			Reader streamReader = null;
+			
+			if (status > 299) {
+				streamReader = new InputStreamReader(con.getErrorStream(), Charset.defaultCharset());
+			} else {
+				streamReader = new InputStreamReader(con.getInputStream(), Charset.defaultCharset());
+			}
+			
+			BufferedReader in = new BufferedReader(streamReader);
+			String inputLine;
+			StringBuffer content = new StringBuffer();
+			while ((inputLine = in.readLine()) != null) {
+				content.append(inputLine);
+			}
+
+			Document doc = convertStringToXMLDocument( content.toString() );
+		 
+			msgBox(doc.getFirstChild().getNodeName(), 1);
+
+			in.close();
+			con.disconnect();
+
+		} catch (Exception e) {
+			displayStackTrace(e);
+			return null;
+		}
+		return returnValue;
+	}
+	
+	private static Document convertStringToXMLDocument(String xmlString) 
+	{
+		//Parser that produces DOM object trees from XML content
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			
+		//API to obtain DOM Document instance
+		DocumentBuilder builder = null;
+		try
+		{
+			//Create DocumentBuilder with default configuration
+			builder = factory.newDocumentBuilder();
+				
+			//Parse the content to Document object
+			Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
+			return doc;
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+		}
+		return null;
 	}
 }

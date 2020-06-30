@@ -1,0 +1,7 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "d:\\_dev\\osm\\josm\\josm\\core\\dist\\josm-custom.jar",
+        "d:\\_dev\\osm\\josm\\josm\\plugins\\fhrs\\lib\\gson-2.8.6.jar"
+    ]
+}
