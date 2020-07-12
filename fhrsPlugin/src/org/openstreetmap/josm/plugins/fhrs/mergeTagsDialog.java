@@ -12,6 +12,8 @@ import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
 
+import org.openstreetmap.josm.plugins.fhrs.FHRSPlugin.fhrsAuthority;
+
 public class mergeTagsDialog {
 
 	public static Map<String, String> showTagsDialog (final Map<String, FHRSPlugin.oldAndNewValues> osmTags, boolean warnCapitalization) {
@@ -82,8 +84,8 @@ public class mergeTagsDialog {
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
 			if (value instanceof String && table.getValueAt(row, 1) == "fhrs:authority") {
 				JComboBox<String> oComboBox = new JComboBox<String>();
-				for (String auth: FHRSPlugin.fhrsAuthorities) {
-					oComboBox.addItem(auth);
+				for (fhrsAuthority auth: FHRSPlugin.fhrsAuthorities) {
+					oComboBox.addItem(auth.name);
 				}
 				oComboBox.setSelectedItem(value.toString());
 				editor = new DefaultCellEditor(oComboBox);
