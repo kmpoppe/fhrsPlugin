@@ -36,6 +36,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import org.w3c.dom.Document;
+
 import java.awt.*;
 import javax.swing.*;
 
@@ -45,7 +47,7 @@ public class FHRSPlugin extends Plugin {
 	static JMenuItem FHRSSearch;
 	private OsmPrimitive selectedObject;
 
-	public static List<String> fhrsAuthorities = new ArrayList<String>();
+	public static List<fhrsAuthority> fhrsAuthorities = new ArrayList<fhrsAuthority>();
 
 	FHRSPlugin me = this;
 	int maxMenuItemLen = 50;
@@ -81,7 +83,12 @@ public class FHRSPlugin extends Plugin {
 				.getAsJsonArray("authorities");
 			for(JsonElement jAuthorityElement: jAuthoritiesArray) {
 				JsonObject jAuthorityObject = jAuthorityElement.getAsJsonObject();
-				fhrsAuthorities.add(jAuthorityObject.get("Name").toString().replaceAll("\"([^\"]*)\"", "$1"));
+				fhrsAuthorities.add(
+					new fhrsAuthority(
+						jAuthorityObject.get("Name").toString().replaceAll("\"([^\"]*)\"", "$1"),
+						Integer.parseInt(jAuthorityObject.get("LocalAuthorityId").toString())
+					)
+				);
 			}
 		} catch (Exception e) {
 			displayStackTrace(e);
@@ -133,6 +140,8 @@ public class FHRSPlugin extends Plugin {
 		@Override
 		public void actionPerformed(ActionEvent event) {
 			DataSet currentDataSet = MainApplication.getLayerManager().getActiveDataSet();
+			boolean cancelAction = false;
+			List<Integer> fhrsAuthorities = new ArrayList<Integer>();
 			if (currentDataSet != null && currentDataSet.getAllSelected().size() > 0) {
 				if (currentDataSet.getAllSelected().size() > 1) {
 					msgBox("More than one object selected", JOptionPane.WARNING_MESSAGE);
@@ -152,19 +161,35 @@ public class FHRSPlugin extends Plugin {
 					}
 					if (!moreThanHousenumber) {
 						JPanel inputPanel = new JPanel(new BorderLayout());
-						JTextField textField = new JTextField(addressInput);
-						JCheckBox remember = new JCheckBox("Remember value", true);
-						inputPanel.add(new JLabel("The object doesn't have any address information. Please enter at least a city and/or a full address."), "First");
-						inputPanel.add(textField, "Center");
-						inputPanel.add(remember, "Last");
-						JOptionPane.showOptionDialog(null, inputPanel, "FHRS Plugin", JOptionPane.OK_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, null);
-						if (textField.getText() != null && textField.getText().trim() != "") {
-							if (remember.isSelected()) addressInput = textField.getText().trim();
-							thisAddress = textField.getText().trim();
-							moreThanHousenumber = true;
+						inputPanel.add(new JLabel("The object doesn't have any address information. Please choose an action."), "First");
+						Object[] options1 = { "Enter address", "Search surrounding FHRS authorities (takes time)", "Cancel"};
+						int result = JOptionPane.showOptionDialog(null, inputPanel, "FHRS Plugin", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, options1, null);
+						if (result == JOptionPane.CANCEL_OPTION) {
+							cancelAction = true;
+						} else {
+							if (result == JOptionPane.YES_OPTION) {
+								inputPanel = new JPanel(new BorderLayout());
+								JTextField textField = new JTextField(addressInput);
+								JCheckBox remember = new JCheckBox("Remember value", true);
+								inputPanel.add(new JLabel("The object doesn't have any address information. Please enter at least a city and/or a full address."), "First");
+								inputPanel.add(textField, "Center");
+								inputPanel.add(remember, "Last");
+								JOptionPane.showOptionDialog(null, inputPanel, "FHRS Plugin", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, null, null);
+								if (textField.getText() != null && textField.getText().trim() != "") {
+									if (remember.isSelected()) addressInput = textField.getText().trim();
+									thisAddress = textField.getText().trim();
+									moreThanHousenumber = true;
+								}
+							}
+							if (result == JOptionPane.NO_OPTION) {
+								fhrsAuthorities = getSurroundingAuthorities(selectedObject);
+								if (fhrsAuthorities.size() > 0) {
+									moreThanHousenumber = true;
+								} 
+							}
 						}
 					}
-					if (moreThanHousenumber) {
+					if (moreThanHousenumber && !cancelAction) {
 						String returnedJson = "{}";
 						String cEncodedName = "";
 						String cEncodedAddress = "";
@@ -184,37 +209,47 @@ public class FHRSPlugin extends Plugin {
 							} )
 							{
 								cUrl = cApiEst + "?pagesize=30";
+								if (fhrsAuthorities.size() > 0)
+									cUrl = cUrl + "&localAuthorityId=" + fhrsAuthorities.get(0).toString();
 								for(String par: pars) cUrl = cUrl + par;
 								returnedJson = fhrsApiCall(cUrl);
-								if (gson.fromJson(returnedJson, JsonObject.class).getAsJsonArray("establishments").size() > 0) break;
-							}
-							jEstablishmentsArray = 
-								gson
-								.fromJson(returnedJson, JsonObject.class)
-								.getAsJsonArray("establishments");
-							List<List<String>> searchResults = new ArrayList<List<String>>();
-							for(JsonElement jEstablishmentElement: jEstablishmentsArray) {
-								JsonObject jEstablishmentObject = jEstablishmentElement.getAsJsonObject();
-								List<String> tableEntry = new ArrayList<String>();
-								String ApiFHRSID = jEstablishmentObject.get("FHRSID").toString();
-								String ApiBusinessName = jEstablishmentObject.get("BusinessName").toString().replaceAll("\"([^\"]*)\"", "$1");
-								tableEntry.add(ApiFHRSID);
-								tableEntry.add(ApiBusinessName);
-								String ApiFullAddress = "";
-								for (int iAddrLine = 1; iAddrLine < 5; iAddrLine++) {
-									String ApiAddressEntry = jEstablishmentObject
-										.get("AddressLine" + Integer.toString(iAddrLine))
-										.toString()
-										.replaceAll("\"([^\"]*)\"", "$1");
-									ApiFullAddress += " " + ApiAddressEntry.trim();
-									ApiFullAddress = ApiFullAddress.trim();
+								JsonObject thisJsonObject = gson.fromJson(returnedJson, JsonObject.class);
+								if (thisJsonObject.has("establishments")) {
+									if (thisJsonObject.getAsJsonArray("establishments").size() > 0) break;
 								}
-								tableEntry.add(ApiFullAddress);
-								searchResults.add(tableEntry);
 							}
-							String selectedFhrsId = searchResultsDialog.showSearchDialog(searchResults);
-							if (selectedFhrsId != null) {
-								updateObjectData(selectedFhrsId);
+							JsonObject thisJsonObject = gson.fromJson(returnedJson, JsonObject.class);
+							if (thisJsonObject.has("establishments")) {
+								jEstablishmentsArray = 
+									gson
+									.fromJson(returnedJson, JsonObject.class)
+									.getAsJsonArray("establishments");
+								List<List<String>> searchResults = new ArrayList<List<String>>();
+								for(JsonElement jEstablishmentElement: jEstablishmentsArray) {
+									JsonObject jEstablishmentObject = jEstablishmentElement.getAsJsonObject();
+									List<String> tableEntry = new ArrayList<String>();
+									String ApiFHRSID = jEstablishmentObject.get("FHRSID").toString();
+									String ApiBusinessName = jEstablishmentObject.get("BusinessName").toString().replaceAll("\"([^\"]*)\"", "$1");
+									tableEntry.add(ApiFHRSID);
+									tableEntry.add(ApiBusinessName);
+									String ApiFullAddress = "";
+									for (int iAddrLine = 1; iAddrLine < 5; iAddrLine++) {
+										String ApiAddressEntry = jEstablishmentObject
+											.get("AddressLine" + Integer.toString(iAddrLine))
+											.toString()
+											.replaceAll("\"([^\"]*)\"", "$1");
+										ApiFullAddress += " " + ApiAddressEntry.trim();
+										ApiFullAddress = ApiFullAddress.trim();
+									}
+									tableEntry.add(ApiFullAddress);
+									searchResults.add(tableEntry);
+								}
+								String selectedFhrsId = searchResultsDialog.showSearchDialog(searchResults);
+								if (selectedFhrsId != null) {
+									updateObjectData(selectedFhrsId);
+								}
+							} else {
+								msgBox("No entry found in database", JOptionPane.INFORMATION_MESSAGE);
 							}
 						} catch (FileNotFoundException e) {
 							msgBox("FHRS ID " + selectedObject.get("fhrs:id").toString() + " not found in database.", JOptionPane.ERROR_MESSAGE);
@@ -433,5 +468,80 @@ public class FHRSPlugin extends Plugin {
 			this.newValue = newV;
 			this.oldValue = oldV;
 		}
+	}
+	public static class fhrsAuthority {
+		public String name;
+		public Integer id;
+		public fhrsAuthority(String name, Integer id) {
+			this.name = name;
+			this.id = id;
+		}
+	}
+	private List<Integer> getSurroundingAuthorities (OsmPrimitive osm) {
+		List<Integer> returnValue = new ArrayList<Integer>();
+		try {
+			String centerSelector = "osm" + (
+				osm.getType() == OsmPrimitiveType.NODE ? "node" : (
+				osm.getType() == OsmPrimitiveType.WAY ? "way" : (
+				osm.getType() == OsmPrimitiveType.RELATION ? "rel" : "")))
+				+ ":" + Long.toString(osm.getId());
+			String querySelect = "select ?fhrsAuth (min(?distance) as ?md) with {\n" +
+				"  select ?center where {\n" +
+				"    " + centerSelector + " osmm:loc ?center.\n" +
+				"  }\n" +
+				"} as %center where {  \n" +
+				"  ?element osmt:fhrs:authority ?fhrsAuth;\n" +
+				"           osmm:loc ?coords.\n" +
+				"\n" +
+				"  include %center.\n" +
+				"  service wikibase:around {\n" +
+				"    ?element osmm:loc ?location.\n" +
+				"    bd:serviceParam wikibase:center ?center;\n" +
+				"                    wikibase:radius \"10\"; # in km\n" +
+				"                    wikibase:distance ?distance.\n" +
+				"  }\n" +
+				"}\n" +
+				"group by ?fhrsAuth\n" +
+				"order by asc(?md)\n" +
+				"limit 3";
+
+			URL url = new URL("https://sophox.org/sparql?query=" + URLEncoder.encode(querySelect, StandardCharsets.UTF_8.toString()));
+
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");
+			int status = con.getResponseCode();
+ 
+			Reader streamReader = null;
+			
+			if (status > 299) {
+				streamReader = new InputStreamReader(con.getErrorStream(), Charset.defaultCharset());
+			} else {
+				streamReader = new InputStreamReader(con.getInputStream(), Charset.defaultCharset());
+			}
+			
+			BufferedReader in = new BufferedReader(streamReader);
+			String inputLine;
+			StringBuffer content = new StringBuffer();
+			while ((inputLine = in.readLine()) != null) {
+				content.append(inputLine);
+			}
+
+			Document doc = XmlHelper.convertStringToXMLDocument(content.toString());
+			List<String> authorities = XmlHelper.evaluateXPath(doc, "/sparql/results/result/binding[@name='fhrsAuth']/literal/text()");
+
+			for(String a: authorities) { 
+				if (fhrsAuthorities.stream().filter(o -> o.name.equals(a)).findFirst().isPresent()) {
+					returnValue.add(fhrsAuthorities.stream().filter(o -> o.name.equals(a)).findFirst().get().id);
+				}
+			}
+
+			in.close();
+			con.disconnect();
+
+		} catch (Exception e) {
+			displayStackTrace(e);
+			return null;
+		}
+		return returnValue;
 	}
 }
