@@ -15,6 +15,7 @@ import org.openstreetmap.josm.data.osm.*;
 import org.openstreetmap.josm.gui.*;
 
 import org.openstreetmap.josm.plugins.*;
+import org.openstreetmap.josm.tools.I18n;
 
 import java.awt.event.*;
 import java.io.BufferedReader;
@@ -100,10 +101,10 @@ public class FHRSPlugin extends Plugin {
 		final MainMenu menu = MainApplication.getMenu();
 		if (FHRSMenu == null) {
 			FHRSMenu = menu.addMenu("FHRS", "FHRS", 0, menu.getDefaultMenuPos(), "help");
-			FHRSGet = new JMenuItem("Get information");
+			FHRSGet = new JMenuItem(I18n.tr("Get information"));
 			FHRSGet.setEnabled(true);
 			FHRSGet.addActionListener(getFHRSAction);
-			FHRSSearch = new JMenuItem("Search entry");
+			FHRSSearch = new JMenuItem(I18n.tr("Search entry"));
 			FHRSSearch.setEnabled(true);
 			FHRSSearch.addActionListener(searchFHRSAction);
 			FHRSMenu.add(FHRSGet);
@@ -320,7 +321,7 @@ public class FHRSPlugin extends Plugin {
 								}
 							}
 							if (osmTags.size() > 0) {
-								Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags, warnCapitalization);
+								Map<String, String> osmTagsToSet = mergeTagsDialog.showTagsDialog(osmTags, warnCapitalization, JsonToOSM);
 								if (osmTagsToSet != null && osmTagsToSet.size() > 0) {
 									ChangePropertyCommand changePropertyCommand = 
 										new ChangePropertyCommand(
